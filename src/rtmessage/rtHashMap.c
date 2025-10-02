@@ -233,16 +233,17 @@ void rtHashMap_Set(rtHashMap hashmap, const void* key, const void* value)
         hashmap->val_destroyer((void*)node->value);
     }
     if(!node)
-    {
-        if((hashmap->size+1) / (float)rtVector_Size(hashmap->buckets) > hashmap->load_factor)
-        {
-            rtHashMap_Resize(hashmap, 1);
-            bucket = rtHashMap_GetBucket(hashmap, key);
-        }
-        node = rt_try_malloc(sizeof(struct rtHashMapNode));
-        node->hashmap = hashmap;
-        rtVector_PushBack(bucket, node);
-        hashmap->size++;
+    {   
+      size_t numBuckets = rtVector_Size(hashmap->buckets);
+      if((numBuckets > 0) &&  (((hashmap->size + 1) / (float) numBuckets) > hashmap->load_factor))
+      {
+        rtHashMap_Resize(hashmap, 1);
+        bucket = rtHashMap_GetBucket(hashmap, key);
+      }
+      node = rt_try_malloc(sizeof(struct rtHashMapNode));
+      node->hashmap = hashmap;
+      rtVector_PushBack(bucket, node);
+      hashmap->size++;
     }
     node->key = hashmap->key_copier(key);
     node->value = hashmap->val_copier(value);
@@ -295,7 +296,10 @@ uint32_t rtHashMap_Hash_Func_String(rtHashMap hashmap, const void* key)
         hash = hash * 31 + *skey;
         skey++;
     }
-    return abs(hash) % rtVector_Size(hashmap->buckets);
+    size_t nbuckets = rtVector_Size(hashmap->buckets);
+    if(nbuckets == 0)
+        return 0; // Prevent division by zero	    
+    return abs(hash) % nbuckets;
 }
 
 int rtHashMap_Compare_Func_String(const void* left, const void* right)
