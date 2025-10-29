@@ -308,7 +308,11 @@ uint32_t rbusHandle_FetchSetMultiTimeout(rbusHandle_t handle)
         fclose(fp);
     }
     if (timeout > 0)
+    {
+        if ((uint32_t)timeout > UINT32_MAX / 1000)
+            return UINT32_MAX;
         return timeout * 1000;
+    }
     return handle->timeoutValues.setMultiTimeout;
 }
 
