@@ -98,6 +98,7 @@ add_executable(rbus_gtest.bin
   rbus_unit_test_nested_servers.cpp
   rbus_unit_test_event_client.cpp
   rbus_unit_test_event_server.cpp
+  test_smoke.cpp
   util.cpp
   main.cpp)
 add_dependencies(rbus_gtest.bin rbus)
