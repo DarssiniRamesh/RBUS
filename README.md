@@ -1,125 +1,157 @@
+# RBUS
 
-# Rbus
-
-RDK Bus (RBus) is a lightweight, fast and efficient bus messaging system. 
+RDK Bus (RBUS) is a lightweight, fast and efficient bus messaging system.
 It allows interprocess communication (IPC) and remote procedure call (RPC)
-between multiple process running on a hardware device.  It supports the
-creation and use of a data model, which is a hierarchical tree of named 
-objects with properties, events, and methods.
+between multiple processes running on a hardware device. It supports a data model,
+which is a hierarchical tree of named objects with properties, events, and methods.
 
+Repository root: This top-level RBUS directory is the project root. There is no nested RBUS/RBUS path.
 
-## Desktop Build (Linux)
+## Quick Start: Configure, Build, Install, Test (from repository root)
 
-    export RBUS_ROOT=${HOME}/rbus
-    export RBUS_INSTALL_DIR=${RBUS_ROOT}/install
-    export RBUS_BRANCH=2105_sprint
-    mkdir -p $RBUS_INSTALL_DIR
-    cd $RBUS_ROOT
+These commands are the canonical steps to configure, build, install, and run unit tests from the repository root.
 
-#### Build rbus and dependencies 
+1) Configure:
+```
+cmake -S . -B build/rbus -DCMAKE_INSTALL_PREFIX="$PWD/install/usr" -DBUILD_FOR_DESKTOP=ON -DENABLE_UNIT_TESTING=ON -DCMAKE_BUILD_TYPE=Debug
+```
 
-    git clone https://github.com/rdkcentral/rbus
-    cmake -Hrbus -Bbuild/rbus -DCMAKE_INSTALL_PREFIX=${RBUS_INSTALL_DIR}/usr -DBUILD_FOR_DESKTOP=ON -DCMAKE_BUILD_TYPE=Debug
-    make -C build/rbus && make -C build/rbus install
+2) Build and install:
+```
+cmake --build build/rbus --target install --parallel
+```
 
-## Run Rbus Apps
+3) Run unit tests directly (best-effort):
+```
+if [ -x build/rbus/unittests/rbus_gtest.bin ]; then build/rbus/unittests/rbus_gtest.bin || exit 1; fi
+```
 
-Setup 3 terminals:
+Alternatively, use the helper script which performs all the above steps without changing directories:
+```
+scripts/build_and_test.sh
+```
 
-    export RBUS_ROOT=${HOME}/rbus && \
-    export RBUS_INSTALL_DIR=${RBUS_ROOT}/install && \
-    export PATH=${RBUS_INSTALL_DIR}/usr/bin:${PATH} && \
-    export LD_LIBRARY_PATH=${RBUS_INSTALL_DIR}/usr/lib:${LD_LIBRARY_PATH}
+Environment variables for the helper script:
+- BUILD_DIR: relative path for the build directory (default: build/rbus)
+- INSTALL_PREFIX: installation prefix (default: "$PWD/install/usr")
+- BUILD_TYPE: build type (default: Debug)
 
-#### Start rtrouted
+Example:
+```
+BUILD_TYPE=Release scripts/build_and_test.sh
+```
 
-In terminal 1, run rtrouted.  This deamon must be running for rbus apps to communicate.
+## Desktop Build (Linux) - Legacy Instructions
 
-    rtrouted -f -l DEBUG
+For historical context, some documentation uses environment variables to set an installation prefix:
 
-Note that if at any point in the future you want to restart rtrouted you can run this.
+```
+export RBUS_ROOT=$PWD
+export RBUS_INSTALL_DIR=${RBUS_ROOT}/install
+mkdir -p "$RBUS_INSTALL_DIR"
+cmake -S . -B build/rbus -DCMAKE_INSTALL_PREFIX="${RBUS_INSTALL_DIR}/usr" -DBUILD_FOR_DESKTOP=ON -DCMAKE_BUILD_TYPE=Debug
+cmake --build build/rbus --target install --parallel
+```
 
-    killall -9 rtrouted; rm -fr /tmp/rtroute*; rtrouted -f -l DEBUG
+Note: Ensure you are at the repository root (this directory). Do not attempt to cd into RBUS/RBUS; that path does not exist in this repository layout.
 
-#### Run a sample app
+## Run RBUS Apps (after install to local prefix)
 
-Note that all sample apps come with both a provider and a consumer app. 
-The provider must be started first and then quickly, before the provider times out, the consumer should be started.
+Set up your environment (adjust paths if you used a different INSTALL_PREFIX):
 
-In terminal 2, run the sample provider.
+```
+export RBUS_INSTALL_DIR="$PWD/install"
+export PATH="${RBUS_INSTALL_DIR}/usr/bin:${PATH}"
+export LD_LIBRARY_PATH="${RBUS_INSTALL_DIR}/usr/lib:${LD_LIBRARY_PATH}"
+```
 
-    rbusSampleProvider
+### Start rtrouted
 
-In terminal 3, run the sample consumer.
+In one terminal, run rtrouted (must be running for RBUS apps to communicate):
+```
+rtrouted -f -l DEBUG
+```
 
-    rbusSampleConsumer
+To restart later:
+```
+killall -9 rtrouted; rm -fr /tmp/rtroute*; rtrouted -f -l DEBUG
+```
 
-Here is the list of all samples:
+### Run a sample app
 
+In a second terminal:
+```
+rbusSampleProvider
+```
+
+In a third terminal:
+```
+rbusSampleConsumer
+```
+
+Sample pairs include:
 1. rbusSampleProvider / rbusSampleConsumer
 2. rbusEventProvider / rbusEventConsumer
-3. rbusEventProvider / rbusEventConsumer
-4. rbusGeneralEventProvider / rbusGeneralEventConsumer
-5. rbusValueChangeProvider / rbusValueChangeConsumer
-6. rbusMethodProvider / rbusMethodConsumer
-7. rbusTableProvider / rbusTableConsumer
+3. rbusGeneralEventProvider / rbusGeneralEventConsumer
+4. rbusValueChangeProvider / rbusValueChangeConsumer
+5. rbusMethodProvider / rbusMethodConsumer
+6. rbusTableProvider / rbusTableConsumer
 
-#### Playing with rbuscli
+### Using rbuscli
 
-The rbuscli utility app allows the user to register a data model and interact with it, 
-exercising the rbus api both from a provider and consumer perspective.
+In one terminal:
+```
+rbuscli -i
+> reg prop A.B
+```
 
-In terminal 2, run rbuscli
+In another terminal:
+```
+rbuscli -i
+> set A.B string "hello"
+> get A.B
+> log events
+> sub A.B
+```
 
-    rbuscli -i
+Back in the first terminal:
+```
+> set A.B string "hello again"
+```
 
-Register a property as a provider would
+Use `help` in rbuscli for more commands, and `quit` to exit.
 
-        > reg prop A.B
+## Test Harness
 
-In terminal 3, run rbuscli and set/get the property, registered by the first rbuscli, as a consumer would.
+Terminal 1:
+```
+rbusTestProvider
+```
 
-    rbuscli -i
-        > set A.B string "hello"
-        > get A.B
+Terminal 2:
+```
+rbusTestConsumer -a
+```
 
-In terminal 3, enable event logging and subscribe to a value-change event.
+The run takes ~5–10 minutes. For detailed logs, rerun with `-l debug` for both provider and consumer.
 
-        > log events
-        > sub A.B
+## Valgrind Example
 
-In terminal 2, change the value so that a value-change event is generated.
+Provider:
+```
+valgrind --leak-check=full --show-leak-kinds=all rbusSampleProvider
+```
 
-        > set A.B string "hello again"
+Consumer:
+```
+valgrind --leak-check=full --show-leak-kinds=all rbusSampleConsumer
+```
 
-In terminal 3, logs should appear showing a value change event was received.
+## Dependencies
 
-There's a lot more you can do with rbuscli. 
-Enter ***help*** to get a full list of commands. 
-When your done, enter ***quit*** to exit rbuscli.
+Ensure required dependencies for your platform are installed (e.g., toolchain, cmake, g++, and external deps like rdk-logger).
+Refer to cmake/ modules for specifics.
 
-#### Run the test harness
+## License
 
-In terminal 2, run the test provider
-
-    rbusTestProvider
-
-In terminal 3, run the test consumer
-
-    rbusTestConsumer -a
-
-
-The test takes about 5-10 minutes. Check for errors in the summary table at the end.
-To get more details for any error, rerun the test passing ***-l debug*** to both the provider and consumer.
-
-#### Run with valgrind
-
-Valgrind is an important tool to help find both memory leaks and memory related bugs.
-
-In terminal 2, run a sample provider using valgrind.
-
-    valgrind --leak-check=full --show-leak-kinds=all rbusSampleProvider
-
-In terminal 3, run a sample consumer using valgrind.
-
-    valgrind --leak-check=full --show-leak-kinds=all rbusSampleConsumer
+See LICENSE for details.
