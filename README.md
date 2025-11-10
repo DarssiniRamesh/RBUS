@@ -5,7 +5,7 @@ It allows interprocess communication (IPC) and remote procedure call (RPC)
 between multiple processes running on a hardware device. It supports a data model,
 which is a hierarchical tree of named objects with properties, events, and methods.
 
-Repository root: This top-level RBUS directory is the project root. There is no nested RBUS/RBUS path.
+Repository root: This top-level RBUS directory is the project root. There is no nested RBUS/RBUS path. All examples assume running commands from this directory and use cmake -S . (source is the current directory).
 
 ## Quick Start: Configure, Build, Install, Test (from repository root)
 

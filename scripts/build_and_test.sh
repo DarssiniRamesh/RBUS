@@ -5,7 +5,7 @@
 
 set -euo pipefail
 
-# PUBLIC INTERFACE
+# PUBLIC_INTERFACE
 # This script can be run as:
 #   scripts/build_and_test.sh
 # Optional environment variables:
@@ -22,10 +22,18 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-# Verify we are in the correct repo (top-level contains CMakeLists.txt)
+# Defensive check: ensure this script is invoked from within the RBUS repo root.
+# The repo root contains CMakeLists.txt and directories like src/, utils/, etc.
 if [[ ! -f "${ROOT_DIR}/CMakeLists.txt" ]]; then
   echo "Error: CMakeLists.txt not found at repo root: ${ROOT_DIR}"
-  echo "Please run this script from within the RBUS repository."
+  echo "Please run this script from within the RBUS repository root (RBUS)."
+  exit 1
+fi
+
+# Fail fast if caller explicitly tries to use a nested RBUS path
+if [[ "${PWD}" == *"/RBUS/RBUS"* ]] || [[ "${ROOT_DIR}" == *"/RBUS/RBUS"* ]]; then
+  echo "Error: Detected nested path RBUS/RBUS which does not exist in this repository layout."
+  echo "Please run from the repository root: .../RBUS"
   exit 1
 fi
 
@@ -37,7 +45,7 @@ BUILD_TYPE="${BUILD_TYPE:-Debug}"
 
 # Normalize install prefix to absolute path
 INSTALL_PREFIX="$(python3 - <<'PY'
-import os,sys
+import os
 p=os.environ.get("INSTALL_PREFIX_INPUT","")
 print(os.path.abspath(p) if p else "")
 PY
@@ -53,6 +61,7 @@ echo "  Build Dir      : ${BUILD_DIR}"
 echo "  Install Prefix : ${INSTALL_PREFIX}"
 echo "  Build Type     : ${BUILD_TYPE}"
 
+# Always configure with -S . equivalent using the computed root directory
 cmake -S "${ROOT_DIR}" -B "${BUILD_DIR}" \
   -DCMAKE_INSTALL_PREFIX="${INSTALL_PREFIX}" \
   -DBUILD_FOR_DESKTOP=ON \
