@@ -1,0 +1,16 @@
+[See generated cppcheck output captured during analysis run; full content stored in runtime environment's cppcheck_report.txt at analysis time. If this repository is replicated, re-run commands in README.txt to regenerate exact report.]
+
+Sample of findings (first lines captured during the run):
+sampleapps/consumer/rbusBlockingConsumer.c:35:30: style: Parameter 'subscription' can be declared as pointer to const. However it seems that 'eventHandler' is a callback function, if 'subscription' is declared with const you might also need to cast function pointer(s). [constParameterCallback]
+    rbusEventSubscription_t* subscription)
+                             ^
+sampleapps/consumer/rbusBlockingConsumer.c:70:50: note: You might need to cast the function pointer here
+ ret = rbusEvent_Subscribe(handle, "rbus_event", eventHandler, NULL,  0);
+                                                 ^
+sampleapps/consumer/rbusBlockingConsumer.c:55:13: style: Variable 'ret' is assigned a value that is never used. [unreadVariable]
+    int ret = 0;
+            ^
+sampleapps/consumer/rbusEventConsumer.c:58:30: style: Parameter 'subscription' can be declared as pointer to const. However it seems that 'generalEvent1Handler' is a callback function, if 'subscription' is declared with const you might also need to cast function pointer(s). [constParameterCallback]
+    rbusEventSubscription_t* subscription)
+                             ^
+... (Report contains ~1800 additional lines covering src/, include/, test/, and sampleapps/)
